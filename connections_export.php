@@ -20,6 +20,18 @@ if (!class_exists('connectionsExportLoad')) {
 			self::defineConstants();
 			
 			add_filter('cn_list_atts_permitted', array(__CLASS__, 'expand_atts_permitted'));
+			
+			if (is_admin()) {
+				add_action('plugins_loaded', array( $this, 'start' ));
+				add_filter('cn_submenu', array(  __CLASS__, 'addMenu' ));
+
+				// Since we're using a custom field, we need to add our own sanitization method.
+				//add_filter( 'cn_meta_sanitize_field-last_emailed', array( __CLASS__, 'sanitize') );
+			}
+			
+			
+			
+			
 			/*
 			 * Register the settings tabs shown on the Settings admin page tabs, sections and fields.
 			 * Init the registered settings.
@@ -44,6 +56,47 @@ if (!class_exists('connectionsExportLoad')) {
 			define( 'CNEXSCH_BASE_PATH', plugin_dir_path( __FILE__ ) );
 			define( 'CNEXSCH_BASE_URL', plugin_dir_url( __FILE__ ) );
 		}
+		/**
+		 * Adds the menu as a sub item of Connections.
+		 *
+		 * @access  private
+		 * @since  unkown
+		 * @param array $menu
+		 * @return array
+		 */
+		public static function addMenu($menu) {
+			$menu[72] = array(
+				'hook' => 'export',
+				'page_title' => 'Connections : Export',
+				'menu_title' => 'Export',
+				'capability' => 'connections_add_entry',
+				'menu_slug' => 'connections_export',
+				'function' => array(
+					__CLASS__,
+					'showPage'
+				)
+			);
+			return $menu;
+		}
+		/**
+		 * Renders the admin page.
+		 *
+		 * @access  private
+		 * @since  unknown
+		 * @return void
+		 */
+		public static function showPage() {
+			if (!isset($_GET['page']))
+				return;
+			switch ($_GET['page']) {
+				case 'connections_export':
+					include_once(dirname(__FILE__) . '/admin/pages/export.php');
+					connectionsEmailsPage();
+					break;
+			}
+		}
+		
+		
 		
 		public function init() { }
 		/**
