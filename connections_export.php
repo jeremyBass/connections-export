@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Connections ExpSearch
+Plugin Name: Connections Export
 Plugin URI: 
 Description: 
 Version: 0.1
@@ -55,6 +55,13 @@ if (!class_exists('connectionsExportLoad')) {
 			define( 'CNEXSCH_BASE_NAME', plugin_basename( __FILE__ ) );
 			define( 'CNEXSCH_BASE_PATH', plugin_dir_path( __FILE__ ) );
 			define( 'CNEXSCH_BASE_URL', plugin_dir_url( __FILE__ ) );
+		}
+		public function start() {
+			if (class_exists('connectionsLoad')) {
+				//load_plugin_textdomain( 'connections_emails' , false , CNFM_DIR_NAME . '/lang' );//comeback to 
+			} else {
+				add_action('admin_notices', create_function('', 'echo \'<div id="message" class="error"><p><strong>ERROR:</strong> Connections must be installed and active in order to use Form.</p></div>\';'));
+			}
 		}
 		/**
 		 * Adds the menu as a sub item of Connections.
