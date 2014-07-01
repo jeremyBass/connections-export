@@ -52,16 +52,16 @@ if (!class_exists('connectionsExportLoad')) {
 
 			add_action( 'wp_print_styles', array( $this, 'loadStyles' ) );
 			add_action( 'init', array($this, 'loadJs') );
-			add_filter('wp_head', array($this, 'add_cnexpsh_data'));
+			//add_filter('wp_head', array($this, 'add_cnexpsh_data'));
 
 
 		}
 		private function defineConstants() {
-			define( 'CNEXSCH_CURRENT_VERSION', '1.0.2' );
-			define( 'CNEXSCH_DIR_NAME', plugin_basename( dirname( __FILE__ ) ) );
-			define( 'CNEXSCH_BASE_NAME', plugin_basename( __FILE__ ) );
-			define( 'CNEXSCH_BASE_PATH', plugin_dir_path( __FILE__ ) );
-			define( 'CNEXSCH_BASE_URL', plugin_dir_url( __FILE__ ) );
+			define( 'CNEXPORT_CURRENT_VERSION', '1.0.2' );
+			define( 'CNEXPORT_DIR_NAME', plugin_basename( dirname( __FILE__ ) ) );
+			define( 'CNEXPORT_BASE_NAME', plugin_basename( __FILE__ ) );
+			define( 'CNEXPORT_BASE_PATH', plugin_dir_path( __FILE__ ) );
+			define( 'CNEXPORT_BASE_URL', plugin_dir_url( __FILE__ ) );
 		}
 		public function start() {
 			if (class_exists('connectionsLoad')) {
