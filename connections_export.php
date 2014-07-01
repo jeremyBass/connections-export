@@ -27,6 +27,13 @@ if (!class_exists('connectionsExportLoad')) {
 
 				// Since we're using a custom field, we need to add our own sanitization method.
 				//add_filter( 'cn_meta_sanitize_field-last_emailed', array( __CLASS__, 'sanitize') );
+				
+				if (isset($_REQUEST['start_export'])) {// Check if option save is performed
+					doExport();
+				}
+				
+				
+				
 			}
 			
 			
@@ -260,11 +267,9 @@ if (!class_exists('connectionsExportLoad')) {
 		* Do search action 
 		* returns string - The html of the search results
 		*/
-		public function doSearch() {
+		public function doExport() {
 			global $post,$connections, $wpdb;
-			
-			// Output the the search input.
-			return $out;
+			require_once(dirname( __FILE__ ) . '/includes/exporter.php');//temp correct later
 		}
 		
 		
