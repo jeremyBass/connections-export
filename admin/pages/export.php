@@ -45,6 +45,7 @@ function connectionsExportPage() {
 
 				$exportURL = $form->tokenURL('admin.php?page=connections_export&start_export', 'filter');
 				echo '<a href="' . $exportURL . '" class="button large blue full">Export Data</a>';
+				echo '<p>As of this moment, the export will be a dump of all the main information, and the meta.  Expanded data will come soon.</p>';
                 break;
         }
 ?>
