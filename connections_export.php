@@ -29,7 +29,7 @@ if (!class_exists('connectionsExportLoad')) {
 				//add_filter( 'cn_meta_sanitize_field-last_emailed', array( __CLASS__, 'sanitize') );
 				
 				if (isset($_REQUEST['start_export'])) {// Check if option save is performed
-					doExport();
+					$this->doExport();
 				}
 				
 				

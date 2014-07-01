@@ -1,16 +1,13 @@
 <?php
 
-$host	=	'localhost';
-$user	=	'user';
-$pass	=	'pass';
-$db		=	'localuser_wrd1';
+
 $file	=	'export';
 
 // You can change this to a non-live settings table...
 $settingsTable = "wp_connections_export_settings";
 
 // Open the database, get the export settings, and set up the export fields...
-openExport($host, $user, $pass, $db);
+openExport();
 
 // Draw the header (sets up field breakouts, so it must be called if you use breakouts)...
 exportHeader();
@@ -22,20 +19,54 @@ exportCells();
 closeExport();
 
 // Connects to the database, loads export settings, defines export delimiters and begins the export process...
-function openExport($host, $user, $pass, $db) {
-	global	$exportData, $contacts, $exportFields, $settings, $settingsTable, $numContacts;
+function openExport() {
+	
+/*
+			define( 'CN_ENTRY_TABLE', $prefix . 'connections' );
+			define( 'CN_ENTRY_ADDRESS_TABLE', $prefix . 'connections_address' );
+			define( 'CN_ENTRY_PHONE_TABLE', $prefix . 'connections_phone' );
+			define( 'CN_ENTRY_EMAIL_TABLE', $prefix . 'connections_email' );
+			define( 'CN_ENTRY_MESSENGER_TABLE', $prefix . 'connections_messenger' );
+			define( 'CN_ENTRY_SOCIAL_TABLE', $prefix . 'connections_social' );
+			define( 'CN_ENTRY_LINK_TABLE', $prefix . 'connections_link' );
+			define( 'CN_ENTRY_DATE_TABLE', $prefix . 'connections_date' );
 
-	// Connect to the database...
-	$link = mysql_connect($host, $user, $pass) or die("Cannot connect: ".mysql_error());
-	mysql_select_db($db) or die("Cannot connect.");
-	// Read the export settings into the export array (the order here is how the fields will appear in the export)...
-	$sql = mysql_query("SELECT * FROM ".$settingsTable." WHERE type > -1 ORDER BY field_order");
-	while($exportFields[] = mysql_fetch_array($sql));
+			define( 'CN_ENTRY_TABLE_META', $prefix . 'connections_meta' );
+			define( 'CN_TERMS_TABLE', $prefix . 'connections_terms' );
+			define( 'CN_TERM_TAXONOMY_TABLE', $prefix . 'connections_term_taxonomy' );
+			define( 'CN_TERM_RELATIONSHIP_TABLE', $prefix . 'connections_term_relationships' );
+			*/	
+	
+	global	$wpdb, $exportData, $contacts, $exportFields, $settings, $settingsTable, $numContacts;
 
-	// Explode the settings stored in INTERTNAL_SETTINGS.fields into the $settings variable...
-	$sql = mysql_query("SELECT * FROM ".$settingsTable." WHERE type = -1");
-	$i = mysql_fetch_array($sql);
-	parse_str($i['fields'], $settings);
+	$contacts = $wpdb->get_results( "SELECT * FROM ".CN_ENTRY_TABLE, ARRAY_A );
+	$numContacts = count($contacts);
+
+
+
+
+	$exportFields=$wpdb->get_results(
+		'SELECT * FROM '.$settingsTable.' WHERE type > -1 ORDER BY field_order',
+		ARRAY_A
+	);
+	
+	
+	
+	
+	
+	
+/*
+
+
+	$i=$wpdb->get_results(
+		'SELECT * FROM '.$settingsTable.' WHERE type = -1',
+		ARRAY_A
+	);
+	parse_str($i['fields'], $settings);*/
+	
+	$settings['exportType']="csv";
+	
+	
 
 	switch (strtolower($settings['exportType'])) {
 		case "htm":
@@ -77,9 +108,6 @@ function openExport($host, $user, $pass, $db) {
 			break;
 	}
 
-	// Setup the main contact connection...
-	$contacts = mysql_query("SELECT * FROM wp_connections".($settings['order'] == '' ? '' : ' ORDER BY '.$settings['order']));
-	$numContacts = mysql_num_rows($contacts);
 
 	// Write the open data code to the export to get things started...
 	$exportData .= $settings['outputOpenData'];
@@ -87,10 +115,12 @@ function openExport($host, $user, $pass, $db) {
 
 // Writes out the data fields...
 function exportCells() {
-	global $contacts, $exportData, $exportFields, $maxCategories;
+	global $contacts, $exportData, $exportFields, $maxCategories, $wpdb;
+	var_dump($exportFields);die();
+	
 	$dataset = '';
 	// Go through each contact...
-	while ($contact = mysql_fetch_array($contacts)) {
+	foreach($contacts as $contact) {
 		$rec = '';
 		// ...and go through each cell the user wants to export, and match it with the cell in the contact...
 		for ($i=0; $i < count($exportFields)-1; $i++) {
@@ -103,11 +133,17 @@ function exportCells() {
 				case 2:
 					// Process category (special since taxonomy data must be climbed) table and list all categories in a single cell...
 					$line = '';
+					
+					$result = $wpdb->get_col("SELECT wp_connections_terms.name as value FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$contact['id']);
+					foreach($result as $value){
+						$line.=$value;
+					}
+					/*
 					$row = mysql_query("SELECT wp_connections_terms.name as value FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$contact['id']);
 					while ($result = mysql_fetch_array($row)) {
 						if ($line != '') $line .= '; ';		// Add a comma to separate multiple entries...
 						$line .= $result['value'];
-					}
+					}*/
 					$rec .= data($line);
 					break;
 				case 3:
@@ -118,10 +154,10 @@ function exportCells() {
 						$catField[$j] = data('');
 					}
 					// Now start filling in the empty cells with data...
-					$row = mysql_query("SELECT wp_connections_terms.name as value FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$contact['id']." ORDER BY wp_connections_terms.name");
+					$result = $wpdb->get_col("SELECT wp_connections_terms.name as value FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$contact['id']." ORDER BY wp_connections_terms.name");
 					$j = 0;
-					while ($result = mysql_fetch_array($row)) {
-						$catField[$j] = data($result['value']);
+					foreach($result as $value){
+						$catField[$j] = data($value);
 						$j++;
 					}
 					$x = implode('',$catField);
@@ -135,20 +171,20 @@ function exportCells() {
 						$catField[$j] = data('');
 					}
 					// Now start filling in the empty cells with data...
-					$row = mysql_query("SELECT wp_connections_terms.name as value, wp_connections_term_taxonomy.parent as parent FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id JOIN wp_connections_term_taxonomy ON wp_connections_term_taxonomy.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$contact['id']." ORDER BY wp_connections_term_taxonomy.parent");
+					$result = $wpdb->get_results("SELECT wp_connections_terms.name as value, wp_connections_term_taxonomy.parent as parent FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id JOIN wp_connections_term_taxonomy ON wp_connections_term_taxonomy.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$contact['id']." ORDER BY wp_connections_term_taxonomy.parent");
 					$j = 0;
-					while ($result = mysql_fetch_array($row)) {
+					foreach($result as $value){
 						if ($j == 0) {
 							// If the contact has a top-level category...
-							if ($result['parent'] == 0) {
-								$catField[$j] = data($result['value']);
+							if ($value['parent'] == 0) {
+								$catField[$j] = data($value['value']);
 							} else {
 								$catField[$j] = data('None');
 								$j++;
-								$catField[$j] = data($result['value']);
+								$catField[$j] = data($value['value']);
 							}
 						} else {
-							$catField[$j] = data($result['value']);
+							$catField[$j] = data($value['value']);
 						}
 						$j++;
 					}
@@ -168,7 +204,7 @@ function exportCells() {
 
 // Draw breakout data...
 function exportBreakoutCell($breakout, $contact) {
-	global $db;
+	global $db, $wpdb;
 	$record = '';
 	$breakoutFields = explode(";", $breakout['fields']);
 	$breakoutTypes = explode(";", $breakout['breakout_types']);
@@ -185,19 +221,19 @@ function exportBreakoutCell($breakout, $contact) {
 		$breakoutTypeField[$i] = $type;
 	}
 	// Get the data for this breakout...
-	$row = mysql_query("SELECT * FROM wp_connections_".$breakout['table_name']." WHERE wp_connections_".$breakout['table_name'].".entry_id = ".$contact['id']." ORDER BY wp_connections_".$breakout['table_name'].".order");
+	$result = $wpdb->get_results("SELECT * FROM wp_connections_".$breakout['table_name']." WHERE wp_connections_".$breakout['table_name'].".entry_id = ".$contact['id']." ORDER BY wp_connections_".$breakout['table_name'].".order");
 
 	// Go through each breakout record from it's table...
-	while ($result = mysql_fetch_array($row)) {
+	foreach($result as $value) {
 		$x +=1;
 		// Go through all the types that are supposed to be exported...
 		for ($i = 0; $i < count($breakoutTypes); $i++) {
 			$type = '';
 			// If the type is in our list, we need to export it...
-			if ($breakoutTypes[$i] == $result['type']) {
+			if ($breakoutTypes[$i] == $value['type']) {
 				// Loop through each field and record it...
 				for ($j = 0; $j < count($breakoutFields); $j++) {
-					$type .= data($result[$breakoutFields[$j]]);
+					$type .= data($value[$breakoutFields[$j]]);
 				}
 				$breakoutTypeField[$i] = $type;
 			}
@@ -217,7 +253,7 @@ function exportBreakoutCell($breakout, $contact) {
 
 // Writes out the header to the $exportData string...
 function exportHeader() {
-	global $exportData, $exportFields, $settings;
+	global $exportData, $exportFields, $settings, $wpdb;
 	$header = '';
 	for ($i=0; $i < count($exportFields)-1; $i++) {
 		// If there is a special type, export it, otherwise, just draw it (and when you draw it, check if settings say the first letter is upper case).
@@ -230,7 +266,7 @@ function exportHeader() {
 // This is called for each breakout field encountered while writing the header, it returns all header cells that needed to be drawn by the breakout.
 // It also populates the fields and types array strings if they're empty.
 function explodeBreakoutHeader(&$breakout) {
-	global $db, $maxCategories;
+	global $db, $maxCategories,$wpdb;
 
 	// We need a list of fields (i.e. adr_line1, adr_line2, city, state, zip), and a list of types (i.e. work, home, other)
 
@@ -243,9 +279,10 @@ function explodeBreakoutHeader(&$breakout) {
 	// If no breakout field list was specified, include all fields...
 	if (empty($breakout['fields'])) {
 		// Get the field names from the SQL schema for the table we're going to use, and plop them into an array...
-		$row = mysql_query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = '".$db."' AND table_name = 'wp_connections_".$breakout['table_name']."';");
-		for ($i = 0; $result = mysql_fetch_array($row); $i++) {
-			$breakoutFields[$i] = $result[0];
+		$result = $wpdb->get_col("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = '".$db."' AND table_name = 'wp_connections_".$breakout['table_name']."';");
+		$i=0;
+		foreach ($result as $value) {
+			$breakoutFields[$i] = $value[0];
 		}
 		// Copy the array back into the fields item for use later...
 		$breakout['fields'] = implode(";", $breakoutFields);
@@ -258,10 +295,11 @@ function explodeBreakoutHeader(&$breakout) {
 	// You can specify you only want home addresses in an export for example, if nothing is specified, get a list of all types from the breakout's table...
 	if (empty($breakout['breakout_types'])) {
 		// Put the result into an array...
-		$row = mysql_query("SELECT DISTINCT type FROM wp_connections_".$breakout['table_name']." ORDER BY type");
+		$result = $wpdb->get_col("SELECT DISTINCT type FROM wp_connections_".$breakout['table_name']." ORDER BY type");
 		// Put a list of types for this breakout into an array...
-		for ($i = 0; $result = mysql_fetch_array($row); $i++) {
-			$breakoutTypes[$i] = $result['type'];
+		$i=0;
+		foreach ($result as $value) {
+			$breakoutTypes[$i] = $value['type'];
 		}
 		// Copy the array back into the breakout_types item for use later...
 		$breakout['breakout_types'] = implode(";", $breakoutTypes);
@@ -285,15 +323,14 @@ function explodeBreakoutHeader(&$breakout) {
 			break;
 		// Breakout a list in the header...
 		case 3:
-			$rTemp = mysql_query("SELECT id FROM wp_connections");
+			$rTemp = $wpdb->get_col("SELECT id FROM wp_connections");
 			// Go through each contact...
 			$maxCategories = 0;
-			while ($cont = mysql_fetch_array($rTemp)) {
+			foreach($rTemp as $value){
 				// And get a count of how many categories it has...
-				$rTemp2 = mysql_query("SELECT count(*) as total FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$cont['id']);
-				$res = mysql_fetch_array($rTemp2);
+				$rTemp2 = $wpdb->get_var("SELECT count(*) FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$value['id']);
 				// Find the biggest result...
-				if ($res['total'] > $maxCategories) $maxCategories = $res['total'];
+				if ($rTemp2 > $maxCategories) $maxCategories = $rTemp2;
 			}
 
 			// Finally, write a list of fields for each category...
@@ -303,15 +340,15 @@ function explodeBreakoutHeader(&$breakout) {
 			break;
 		// Breakout a list in the header, using primaries in the first column...
 		case 4:
-			$rTemp = mysql_query("SELECT id FROM wp_connections");
+			$rTemp = $wpdb->get_col("SELECT id FROM wp_connections");
 			// Go through each contact...
 			$maxCategories = 0;
-			while ($cont = mysql_fetch_array($rTemp)) {
+			foreach($rTemp as $value){
 				// And get a count of how many categories it has...
-				$rTemp2 = mysql_query("SELECT count(*) as total FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$cont['id']);
+				$rTemp2 = $wpdb->get_var("SELECT count(*) FROM wp_connections_terms JOIN wp_connections_term_relationships ON wp_connections_term_relationships.term_taxonomy_id = wp_connections_terms.term_id WHERE wp_connections_term_relationships.entry_id = ".$value['id']);
 				$res = mysql_fetch_array($rTemp2);
 				// Find the biggest result...
-				if ($res['total'] > $maxCategories) $maxCategories = $res['total'];
+				if ($rTemp2 > $maxCategories) $maxCategories = $rTemp2;
 			}
 
 			// Finally, write a list of fields for each category...
