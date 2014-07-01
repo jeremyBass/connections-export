@@ -14,7 +14,7 @@ function connectionsExportPage() {
 				text-align:center;
 				width:700px">You do not have sufficient permissions to access this page.</p>');
     } else {
-        global $wpdb, $connections, $connectionsEmails;
+        global $wpdb, $connections, $connectionsExports;
         // Grab an instance of the Connections object.
         $instance  = Connections_Directory();
         $queryVars = array();
@@ -30,9 +30,9 @@ function connectionsExportPage() {
         switch ($action) {
             case 'send_email':
 			
-				$from_email = $connections->settings->get( 'connections_emails' , 'defaults' , 'from_email' );
-				$from_name_email = $connections->settings->get( 'connections_emails' , 'defaults' , 'from_name_email' );
-				$to_name_format_email = $connections->settings->get( 'connections_emails' , 'defaults' , 'to_name_format_email' );
+				$from_email = $connections->settings->get( 'connections_export' , 'defaults' , 'from_email' );
+				$from_name_email = $connections->settings->get( 'connections_export' , 'defaults' , 'from_name_email' );
+				$to_name_format_email = $connections->settings->get( 'connections_export' , 'defaults' , 'to_name_format_email' );
 			
 			
                 $subject        = $_REQUEST['sub'];
@@ -116,7 +116,7 @@ function connectionsExportPage() {
                 break;
             case 'set_up_email':
                 $attr = array(
-                    'action' => 'admin.php?page=connections_emails&action=send_email',
+                    'action' => 'admin.php?page=connections_export&action=send_email',
                     'method' => 'post',
                     'enctype' => 'multipart/form-data'
                 );
@@ -125,12 +125,12 @@ function connectionsExportPage() {
 					?>
 					  Subject:
 					  <?php
-					  	$default_subject_email = $connections->settings->get( 'connections_emails' , 'defaults' , 'default_subject_email' );
+					  	$default_subject_email = $connections->settings->get( 'connections_export' , 'defaults' , 'default_subject_email' );
 						?>
 					  <input type="text" name="sub" value="<?=$default_subject_email?>"/>
 					  <br/>
 					  <label>Message:<?php
-					  	$default_html_email = $connections->settings->get( 'connections_emails' , 'defaults' , 'default_html_email' );
+					  	$default_html_email = $connections->settings->get( 'connections_export' , 'defaults' , 'default_html_email' );
 						wp_editor($default_html_email, 'mess', array(
 							"teeny" => true,
 							"wpautop" => false
@@ -214,7 +214,7 @@ function connectionsExportPage() {
             case 'start':
                 $form            = new cnFormObjects();
                 $categoryObjects = new cnCategoryObjects();
-                $page            = $connections->currentUser->getFilterPage('connections_emails');
+                $page            = $connections->currentUser->getFilterPage('connections_export');
                 $offset          = ($page->current - 1) * $page->limit;
                 echo '<div class="wrap">';
                 echo get_screen_icon('connections');

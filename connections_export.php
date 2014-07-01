@@ -98,7 +98,7 @@ if (!class_exists('connectionsExportLoad')) {
 			switch ($_GET['page']) {
 				case 'connections_export':
 					include_once(dirname(__FILE__) . '/admin/pages/export.php');
-					connectionsEmailsPage();
+					connectionsExportPage();
 					break;
 			}
 		}
